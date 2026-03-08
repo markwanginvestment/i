@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Polymarket 伊朗协议实时监控系统</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #0f172a; min-height: 100vh; color: #e2e8f0; }
@@ -17,6 +16,7 @@
         .pulse { width: 12px; height: 12px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } }
         .last-update { font-size: 0.9em; opacity: 0.8; margin-top: 10px; }
+        .data-source { font-size: 0.8em; opacity: 0.7; margin-top: 5px; }
         .controls { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 20px; }
         .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; }
         .btn-primary { background: #3b82f6; color: white; }
@@ -30,6 +30,7 @@
         .metric-title { font-size: 0.95em; color: #94a3b8; font-weight: 500; }
         .metric-icon { font-size: 1.5em; }
         .metric-value { font-size: 2.8em; font-weight: 700; margin-bottom: 8px; background: linear-gradient(90deg, #fff, #cbd5e1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .metric-value.loading { color: #64748b; -webkit-text-fill-color: #64748b; }
         .metric-change { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 20px; font-size: 0.9em; font-weight: 600; }
         .change-up { background: rgba(16, 185, 129, 0.2); color: #10b981; }
         .change-down { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
@@ -54,6 +55,7 @@
         .odds-negative { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
         .badge { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; font-weight: 600; }
         .status-live { background: rgba(16, 185, 129, 0.2); color: #10b981; animation: blink 2s infinite; }
+        .status-simulated { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         .alert-panel { background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; padding: 24px; border: 1px solid #334155; margin-top: 24px; }
         .alert-item { display: flex; align-items: flex-start; gap: 15px; padding: 16px; margin-bottom: 12px; background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; border-radius: 0 8px 8px 0; }
@@ -61,43 +63,30 @@
         .alert-content h4 { color: #60a5fa; margin-bottom: 5px; }
         .alert-content p { color: #94a3b8; font-size: 0.95em; line-height: 1.5; }
         .alert-time { color: #64748b; font-size: 0.85em; margin-left: auto; }
+        .error-message { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
         @media (max-width: 768px) {
             .container { padding: 15px; }
             header { padding: 20px; margin-bottom: 15px; }
             .header-top { flex-direction: column; text-align: center; gap: 15px; }
             header h1 { font-size: 1.3em; gap: 10px; }
             .live-indicator { padding: 8px 15px; font-size: 0.9em; }
-            .last-update { font-size: 0.8em; }
             .controls { justify-content: center; margin-top: 15px; }
             .btn { padding: 10px 18px; font-size: 0.9em; }
             .dashboard { grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px; }
             .metric-card { padding: 18px; }
             .metric-value { font-size: 1.8em; }
-            .metric-title { font-size: 0.85em; }
             .chart-grid { grid-template-columns: 1fr; gap: 15px; margin-bottom: 15px; }
             .chart-card { padding: 18px; }
-            .chart-header { flex-direction: column; gap: 12px; align-items: flex-start; }
-            .chart-title { font-size: 1.1em; }
             .chart-wrapper { height: 280px; }
             .market-table-container { padding: 18px; }
-            .table-header { flex-direction: column; gap: 12px; align-items: flex-start; }
             table { font-size: 0.85em; }
             th, td { padding: 12px 8px; }
             .prob-bar-container { width: 80px; }
-            .alert-panel { padding: 18px; margin-top: 15px; }
-            .alert-item { flex-direction: column; gap: 8px; padding: 12px; }
-            .alert-time { margin-left: 0; }
         }
-        
         @media (max-width: 480px) {
             header h1 { font-size: 1.1em; }
-            .dashboard { grid-template-columns: repeat(2, 1fr); }
             .metric-value { font-size: 1.5em; }
-            .metric-change { font-size: 0.8em; padding: 4px 8px; }
             .chart-wrapper { height: 250px; }
-            table { font-size: 0.8em; }
-            th, td { padding: 10px 6px; }
-            .prob-bar-container { width: 60px; height: 6px; }
         }
     </style>
 </head>
@@ -107,35 +96,36 @@
             <div class="header-top">
                 <div>
                     <h1>🇮🇷 Polymarket 伊朗协议实时监控系统</h1>
-                    <div class="last-update">最后更新: <span id="lastUpdate">--</span> | 数据延迟: ~5分钟</div>
+                    <div class="last-update">最后更新: <span id="lastUpdate">--</span></div>
+                    <div class="data-source">数据来源: Polymarket API | 部分数据可能为模拟</div>
                 </div>
                 <div class="live-indicator"><div class="pulse"></div><span>实时监控中</span></div>
             </div>
             <div class="controls">
                 <button class="btn btn-primary" onclick="refreshData()">🔄 刷新数据</button>
                 <button class="btn btn-secondary" onclick="toggleAutoRefresh()">⏱️ 自动刷新: <span id="autoRefreshStatus">开启</span></button>
-                <button class="btn btn-secondary" onclick="exportData()">📥 导出数据</button>
             </div>
         </header>
+        <div id="errorContainer"></div>
         <div class="dashboard">
             <div class="metric-card">
                 <div class="metric-header"><span class="metric-title">整体市场情绪</span><span class="metric-icon">📊</span></div>
-                <div class="metric-value" id="marketSentiment">--</div>
-                <div class="metric-change change-down"><span>↓</span> 看跌</div>
+                <div class="metric-value loading" id="marketSentiment">--</div>
+                <div class="metric-change" id="sentimentChange">--</div>
             </div>
             <div class="metric-card">
                 <div class="metric-header"><span class="metric-title">加权平均概率</span><span class="metric-icon">🎯</span></div>
-                <div class="metric-value" id="avgProbability">--%</div>
-                <div class="metric-change change-down"><span>↓</span> <span id="probChange">-2.3%</span> (24h)</div>
+                <div class="metric-value loading" id="avgProbability">--%</div>
+                <div class="metric-change" id="probChangeContainer">--</div>
             </div>
             <div class="metric-card">
                 <div class="metric-header"><span class="metric-title">总交易量</span><span class="metric-icon">💰</span></div>
-                <div class="metric-value" id="totalVolume">$--M</div>
-                <div class="metric-change change-up"><span>↑</span> <span id="volChange">+5.2%</span> (24h)</div>
+                <div class="metric-value loading" id="totalVolume">$--M</div>
+                <div class="metric-change" id="volChangeContainer">--</div>
             </div>
             <div class="metric-card">
                 <div class="metric-header"><span class="metric-title">活跃市场数</span><span class="metric-icon">📈</span></div>
-                <div class="metric-value" id="activeMarkets">--</div>
+                <div class="metric-value loading" id="activeMarkets">--</div>
                 <div class="metric-change" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">实时监控</div>
             </div>
         </div>
@@ -151,64 +141,239 @@
         </div>
         <div class="market-table-container">
             <div class="table-header">
-                <h3 style="font-size: 1.3em; display: flex; align-items: center; gap: 10px;">📋 活跃市场监控</h3>
-                <div style="display: flex; gap: 10px;">
-                    <select id="filterCategory" onchange="filterMarkets()" style="padding: 8px 15px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #e2e8f0;"><option value="all">全部类别</option><option value="war_end">战争结束</option><option value="peace_deal">和平协议</option><option value="ceasefire">停火协议</option><option value="regime_change">政权更迭</option></select>
-                    <select id="sortBy" onchange="sortMarkets()" style="padding: 8px 15px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #e2e8f0;"><option value="date">按日期排序</option><option value="probability">按概率排序</option><option value="volume">按交易量排序</option></select>
-                </div>
+                <h3 style="font-size: 1.3em;">📋 活跃市场监控</h3>
             </div>
             <table id="marketTable">
-                <thead><tr><th>市场</th><th>目标日期</th><th>YES 概率</th><th>赔率</th><th>24h 变化</th><th>交易量</th><th>状态</th></tr></thead>
+                <thead><tr><th>市场</th><th>YES 概率</th><th>赔率</th><th>交易量</th><th>状态</th></tr></thead>
                 <tbody id="marketTableBody"></tbody>
             </table>
         </div>
         <div class="alert-panel">
-            <h3 style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">🔔 实时预警</h3>
+            <h3 style="margin-bottom: 20px;">🔔 实时预警</h3>
             <div id="alertContainer"></div>
         </div>
     </div>
     <script>
-        let markets = [
-            { id: 1, question: "Iran war ends by Mar 15", date: "2026-03-15", yes: 0.18, no: 0.83, volume: 45, change: -2.1, type: "war_end" },
-            { id: 2, question: "Iran war ends by Mar 31", date: "2026-03-31", yes: 0.22, no: 0.78, volume: 125, change: +1.5, type: "war_end" },
-            { id: 3, question: "US-Iran peace deal by Apr 15", date: "2026-04-15", yes: 0.14, no: 0.87, volume: 38, change: -0.8, type: "peace_deal" },
-            { id: 4, question: "US-Iran peace deal by Apr 30", date: "2026-04-30", yes: 0.16, no: 0.85, volume: 52, change: +0.5, type: "peace_deal" },
-            { id: 5, question: "Ceasefire by May 31", date: "2026-05-31", yes: 0.28, no: 0.73, volume: 67, change: +3.2, type: "ceasefire" },
-            { id: 6, question: "Iran war ends by Jun 30", date: "2026-06-30", yes: 0.35, no: 0.66, volume: 89, change: +2.1, type: "war_end" },
-            { id: 7, question: "Regime change in 2026", date: "2026-12-31", yes: 0.32, no: 0.69, volume: 78, change: -1.2, type: "regime_change" },
-            { id: 8, question: "Iran war ends by Dec 31", date: "2026-12-31", yes: 0.51, no: 0.50, volume: 95, change: +4.5, type: "war_end" }
+        // 基于 Polymarket 实际搜索结果的伊朗相关市场
+        const iranMarkets = [
+            { question: 'Iran strikes Israel on...?', icon: '🔥', type: 'conflict', baseProb: 1.00, baseVol: 0.7 },
+            { question: 'US forces enter Iran by...?', icon: '🇺🇸', type: 'conflict', baseProb: 0.65, baseVol: 8.8 },
+            { question: 'Will Iran close the Strait of Hormuz by...?', icon: '🚢', type: 'conflict', baseProb: 0.98, baseVol: 0.5 },
+            { question: 'Iran announces new Supreme Leader on...?', icon: '👑', type: 'political', baseProb: 0.29, baseVol: 7.5 },
+            { question: 'US x Iran ceasefire by...?', icon: '🕊️', type: 'peace', baseProb: 0.69, baseVol: 0.8 },
+            { question: 'New Supreme Leader of Iran by...?', icon: '👤', type: 'political', baseProb: 0.85, baseVol: 0.3 },
+            { question: 'Iran leader end of 2026?', icon: '📅', type: 'political', baseProb: 0.03, baseVol: 7.5 },
+            { question: 'Israel x Iran/US conflict ends by...?', icon: '⚔️', type: 'conflict', baseProb: 0.72, baseVol: 0.6 },
+            { question: 'Which countries will Iran strike in March?', icon: '🌍', type: 'conflict', baseProb: 0.99, baseVol: 0.5 },
+            { question: 'Will Reza Pahlavi enter Iran by...?', icon: '🏛️', type: 'political', baseProb: 0.35, baseVol: 7.2 },
+            { question: 'Trump announces end of military operations against Iran by...?', icon: '📢', type: 'political', baseProb: 0.74, baseVol: 2.2 },
+            { question: 'US announces military support of Kurds in Iran by March 31?', icon: '🎖️', type: 'conflict', baseProb: 0.19, baseVol: 0.4 },
+            { question: 'Will the U.S. invade Iran by March 31?', icon: '⚡', type: 'conflict', baseProb: 0.10, baseVol: 0.2 },
+            { question: 'Iran agrees to end enrichment of uranium by March 31?', icon: '☢️', type: 'nuclear', baseProb: 0.07, baseVol: 0.2 },
+            { question: 'Will the US officially declare war on Iran by...?', icon: '📜', type: 'conflict', baseProb: 0.11, baseVol: 0.2 },
+            { question: 'Will Iran claim responsibility for Oslo Embassy attack?', icon: '🏢', type: 'conflict', baseProb: 0.04, baseVol: 0.1 },
+            { question: 'Internet Access restored in Iran by...?', icon: '🌐', type: 'social', baseProb: 0.04, baseVol: 0.2 },
+            { question: 'US announces military support of Iran opposition by March 31?', icon: '🤝', type: 'political', baseProb: 0.22, baseVol: 0.2 },
+            { question: 'Will Reza Pahlavi lead Iran in 2026?', icon: '👑', type: 'political', baseProb: 0.18, baseVol: 0.2 }
         ];
+
+        let markets = [];
         let trendChart, distributionChart, autoRefreshTimer = null, isAutoRefresh = true;
-        function init() { updateDashboard(); initCharts(); renderTable(); generateAlerts(); updateLastUpdateTime(); if (isAutoRefresh) startAutoRefresh(); }
-        function updateDashboard() { const avgProb = (markets.reduce((sum, m) => sum + m.yes, 0) / markets.length * 100).toFixed(1); const totalVol = markets.reduce((sum, m) => sum + m.volume, 0); document.getElementById('marketSentiment').textContent = avgProb < 30 ? '看跌' : avgProb > 50 ? '看涨' : '中性'; document.getElementById('avgProbability').textContent = avgProb + '%'; document.getElementById('totalVolume').textContent = '$' + totalVol + 'M'; document.getElementById('activeMarkets').textContent = markets.length; }
+        let isRealData = false;
+
+        // 尝试从 Polymarket 获取真实数据
+        async function fetchPolymarketData() {
+            try {
+                const query = {
+                    query: `query { markets(where: {question_contains_nocase: "iran"}, limit: 20) { id question outcomes { name probability } volume createdAt endDate } }`
+                };
+                const response = await fetch('https://api.polymarket.com/graphql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(query)
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.data && data.data.markets && data.data.markets.length > 0) {
+                        return data.data.markets.map(m => ({
+                            id: m.id,
+                            question: m.question,
+                            yes: m.outcomes.find(o => o.name === 'Yes')?.probability || 0.5,
+                            no: m.outcomes.find(o => o.name === 'No')?.probability || 0.5,
+                            volume: parseFloat(m.volume) / 1000000,
+                            date: m.endDate ? new Date(m.endDate).toISOString().split('T')[0] : '2026-12-31',
+                            change: (Math.random() - 0.5) * 5,
+                            type: categorizeMarket(m.question)
+                        }));
+                    }
+                }
+                return null;
+            } catch (error) {
+                console.error('Error:', error);
+                return null;
+            }
+        }
+
+        function categorizeMarket(question) {
+            const q = question.toLowerCase();
+            if (q.includes('war') || q.includes('strike') || q.includes('conflict') || q.includes('invade') || q.includes('military')) return 'conflict';
+            if (q.includes('peace') || q.includes('ceasefire') || q.includes('deal')) return 'peace';
+            if (q.includes('leader') || q.includes('pahlavi') || q.includes('regime')) return 'political';
+            if (q.includes('uranium') || q.includes('nuclear')) return 'nuclear';
+            return 'other';
+        }
+
+        function generateSimulatedData() {
+            return iranMarkets.map(m => ({
+                id: Math.random().toString(36).substr(2, 9),
+                question: m.question,
+                yes: m.baseProb,
+                no: 1 - m.baseProb,
+                volume: m.baseVol,
+                date: '2026-12-31',
+                change: (Math.random() - 0.5) * 3,
+                type: m.type,
+                isSimulated: true
+            }));
+        }
+
+        async function init() {
+            const realData = await fetchPolymarketData();
+            if (realData && realData.length > 0) {
+                markets = realData;
+                isRealData = true;
+            } else {
+                markets = generateSimulatedData();
+                isRealData = false;
+                showError('无法连接到 Polymarket API，显示模拟数据');
+            }
+            updateDashboard();
+            initCharts();
+            renderTable();
+            generateAlerts();
+            updateLastUpdateTime();
+            if (isAutoRefresh) startAutoRefresh();
+        }
+
+        function showError(msg) {
+            document.getElementById('errorContainer').innerHTML = `<div class="error-message">⚠️ ${msg}</div>`;
+            setTimeout(() => document.getElementById('errorContainer').innerHTML = '', 5000);
+        }
+
+        function updateDashboard() {
+            const avgProb = (markets.reduce((sum, m) => sum + m.yes, 0) / markets.length * 100).toFixed(1);
+            const totalVol = markets.reduce((sum, m) => sum + m.volume, 0).toFixed(1);
+            document.getElementById('marketSentiment').textContent = avgProb < 30 ? '看跌' : avgProb > 50 ? '看涨' : '中性';
+            document.getElementById('marketSentiment').classList.remove('loading');
+            document.getElementById('avgProbability').textContent = avgProb + '%';
+            document.getElementById('avgProbability').classList.remove('loading');
+            document.getElementById('totalVolume').textContent = '$' + totalVol + 'M';
+            document.getElementById('totalVolume').classList.remove('loading');
+            document.getElementById('activeMarkets').textContent = markets.length;
+            document.getElementById('activeMarkets').classList.remove('loading');
+        }
+
         function initCharts() {
             const ctx1 = document.getElementById('trendChart').getContext('2d');
-            trendChart = new Chart(ctx1, { type: 'line', data: { labels: markets.map(m => m.date.slice(5)), datasets: [{ label: 'YES 概率 (%)', data: markets.map(m => (m.yes * 100).toFixed(1)), borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#3b82f6', pointBorderColor: '#fff', pointBorderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 60, grid: { color: '#334155' }, ticks: { color: '#94a3b8', callback: v => v + '%' } }, x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } } } } });
+            trendChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: markets.slice(0, 8).map(m => m.question.substring(0, 15) + '...'),
+                    datasets: [{
+                        label: 'YES 概率 (%)',
+                        data: markets.slice(0, 8).map(m => (m.yes * 100).toFixed(1)),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#3b82f6',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, max: 100, grid: { color: '#334155' }, ticks: { color: '#94a3b8', callback: v => v + '%' } },
+                        x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8', maxRotation: 45 } }
+                    }
+                }
+            });
+
             const ctx2 = document.getElementById('distributionChart').getContext('2d');
-            const categories = {}; markets.forEach(m => { categories[m.type] = (categories[m.type] || 0) + m.yes; });
-            distributionChart = new Chart(ctx2, { type: 'doughnut', data: { labels: Object.keys(categories).map(k => ({ 'war_end': '战争结束', 'peace_deal': '和平协议', 'ceasefire': '停火', 'regime_change': '政权更迭' })[k] || k), datasets: [{ data: Object.values(categories), backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#e2e8f0', padding: 20 } } } } });
+            const categories = {};
+            markets.forEach(m => { categories[m.type] = (categories[m.type] || 0) + m.yes; });
+            distributionChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(categories).map(k => ({'conflict': '冲突', 'peace': '和平', 'political': '政治', 'nuclear': '核问题', 'social': '社会', 'other': '其他'})[k] || k),
+                    datasets: [{ data: Object.values(categories), backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#64748b'], borderWidth: 0 }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#e2e8f0', padding: 20 } } } }
+            });
         }
+
         function renderTable() {
             const tbody = document.getElementById('marketTableBody');
-            tbody.innerHTML = markets.map(m => { const probClass = m.yes < 0.25 ? 'prob-low' : m.yes < 0.45 ? 'prob-medium' : 'prob-high'; const odds = m.yes >= 0.5 ? Math.round(-100 * m.yes / (1 - m.yes)) : '+' + Math.round(100 * (1 - m.yes) / m.yes); const oddsClass = odds > 0 ? 'odds-positive' : 'odds-negative'; const changeClass = m.change >= 0 ? 'change-up' : 'change-down'; const changeIcon = m.change >= 0 ? '↑' : '↓'; return `<tr><td><strong>${m.question}</strong></td><td>${m.date}</td><td><div class="prob-bar-container"><div class="prob-bar ${probClass}" style="width: ${m.yes * 100}%"></div></div><span style="font-weight: 600;">${(m.yes * 100).toFixed(1)}%</span></td><td><span class="odds ${oddsClass}">${odds}</span></td><td><span class="metric-change ${changeClass}">${changeIcon} ${Math.abs(m.change).toFixed(1)}%</span></td><td>$${m.volume}M</td><td><span class="badge status-live">● 活跃</span></td></tr>`; }).join('');
+            tbody.innerHTML = markets.map(m => {
+                const probClass = m.yes < 0.25 ? 'prob-low' : m.yes < 0.45 ? 'prob-medium' : 'prob-high';
+                const odds = m.yes >= 0.5 ? Math.round(-100 * m.yes / (1 - m.yes)) : '+' + Math.round(100 * (1 - m.yes) / m.yes);
+                const oddsClass = odds > 0 ? 'odds-positive' : 'odds-negative';
+                const statusBadge = m.isSimulated ? '<span class="badge status-simulated">● 模拟</span>' : '<span class="badge status-live">● 实时</span>';
+                return `<tr><td><strong>${m.question}</strong></td><td><div class="prob-bar-container"><div class="prob-bar ${probClass}" style="width: ${m.yes * 100}%"></div></div><span style="font-weight: 600;">${(m.yes * 100).toFixed(1)}%</span></td><td><span class="odds ${oddsClass}">${odds}</span></td><td>$${m.volume.toFixed(1)}M</td><td>${statusBadge}</td></tr>`;
+            }).join('');
         }
+
         function generateAlerts() {
             const alerts = [];
-            markets.forEach(m => { if (Math.abs(m.change) > 3) { alerts.push({ icon: m.change > 0 ? '📈' : '📉', title: `${m.question} 概率${m.change > 0 ? '上涨' : '下跌'} ${Math.abs(m.change).toFixed(1)}%`, content: `当前概率: ${(m.yes * 100).toFixed(1)}%，建议关注相关新闻动态`, time: '刚刚', type: 'warning' }); } });
-            const highVol = markets.filter(m => m.volume > 80);
-            if (highVol.length > 0) { alerts.push({ icon: '💰', title: '高交易量警报', content: `${highVol.length} 个市场交易量超过 $80M，显示市场活跃度提升`, time: '5分钟前', type: 'info' }); }
-            const inflection = markets.find(m => m.date === '2026-05-31');
-            if (inflection && inflection.yes > 0.25) { alerts.push({ icon: '🔥', title: '关键拐点预警: 5月31日', content: '该日期概率显著上升，可能反映市场对夏季外交窗口期的预期', time: '10分钟前', type: 'critical' }); }
+            markets.forEach(m => {
+                if (Math.abs(m.change) > 3) {
+                    alerts.push({ icon: m.change > 0 ? '📈' : '📉', title: `${m.question.substring(0, 30)}... 概率${m.change > 0 ? '上涨' : '下跌'} ${Math.abs(m.change).toFixed(1)}%`, content: `当前概率: ${(m.yes * 100).toFixed(1)}%`, time: '刚刚' });
+                }
+            });
+            const highVol = markets.filter(m => m.volume > 5);
+            if (highVol.length > 0) alerts.push({ icon: '💰', title: '高交易量警报', content: `${highVol.length} 个市场交易量超过 $5M`, time: '5分钟前' });
+            const highProb = markets.find(m => m.yes > 0.7);
+            if (highProb) alerts.push({ icon: '🔥', title: '高概率事件预警', content: `"${highProb.question.substring(0, 40)}..." 概率已达 ${(highProb.yes * 100).toFixed(0)}%`, time: '10分钟前' });
             document.getElementById('alertContainer').innerHTML = alerts.map(a => `<div class="alert-item"><span class="alert-icon">${a.icon}</span><div class="alert-content"><h4>${a.title}</h4><p>${a.content}</p></div><span class="alert-time">${a.time}</span></div>`).join('');
         }
-        function refreshData() { markets.forEach(m => { const change = (Math.random() - 0.5) * 0.04; m.yes = Math.max(0.05, Math.min(0.95, m.yes + change)); m.no = 1 - m.yes; m.change = change * 100; }); updateDashboard(); renderTable(); generateAlerts(); trendChart.data.datasets[0].data = markets.map(m => (m.yes * 100).toFixed(1)); trendChart.update(); updateLastUpdateTime(); }
-        function updateLastUpdateTime() { document.getElementById('lastUpdate').textContent = new Date().toLocaleString('zh-CN'); }
-        function toggleAutoRefresh() { isAutoRefresh = !isAutoRefresh; document.getElementById('autoRefreshStatus').textContent = isAutoRefresh ? '开启' : '关闭'; if (isAutoRefresh) startAutoRefresh(); else stopAutoRefresh(); }
-        function startAutoRefresh() { if (autoRefreshTimer) clearInterval(autoRefreshTimer); autoRefreshTimer = setInterval(refreshData, 30000); }
-        function stopAutoRefresh() { if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; } }
-        function exportData() { const data = { timestamp: new Date().toISOString(), markets: markets, summary: { avgProbability: document.getElementById('avgProbability').textContent, totalVolume: document.getElementById('totalVolume').textContent, sentiment: document.getElementById('marketSentiment').textContent } }; const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `polymarket_iran_data_${Date.now()}.json`; a.click(); }
-        function filterMarkets() { renderTable(); }
-        function sortMarkets() { renderTable(); }
+
+        async function refreshData() {
+            const realData = await fetchPolymarketData();
+            if (realData && realData.length > 0) {
+                markets = realData;
+                isRealData = true;
+            } else {
+                markets.forEach(m => {
+                    const change = (Math.random() - 0.5) * 0.04;
+                    m.yes = Math.max(0.05, Math.min(0.95, m.yes + change));
+                    m.no = 1 - m.yes;
+                    m.change = change * 100;
+                });
+            }
+            updateDashboard();
+            renderTable();
+            generateAlerts();
+            if (trendChart) { trendChart.data.datasets[0].data = markets.slice(0, 8).map(m => (m.yes * 100).toFixed(1)); trendChart.update(); }
+            updateLastUpdateTime();
+        }
+
+        function updateLastUpdateTime() {
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleString('zh-CN') + (isRealData ? '' : ' (模拟数据)');
+        }
+
+        function toggleAutoRefresh() {
+            isAutoRefresh = !isAutoRefresh;
+            document.getElementById('autoRefreshStatus').textContent = isAutoRefresh ? '开启' : '关闭';
+            if (isAutoRefresh) { autoRefreshTimer = setInterval(refreshData, 30000); } else { clearInterval(autoRefreshTimer); }
+        }
+
+        function startAutoRefresh() { autoRefreshTimer = setInterval(refreshData, 30000); }
+
         window.onload = init;
     </script>
 </body>
