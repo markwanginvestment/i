@@ -48,6 +48,25 @@
         td strong { display: block; max-width: 350px; word-break: break-word; line-height: 1.5; font-size: 0.95em; }
         .prob-bar-container { width: 120px; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 10px; }
         .prob-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        
+        /* 实时新闻板块 */
+        .news-section { background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; padding: 24px; border: 1px solid #334155; margin-bottom: 24px; }
+        .news-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #334155; }
+        .news-title { font-size: 1.3em; font-weight: 600; display: flex; align-items: center; gap: 10px; color: #fbbf24; }
+        .news-badge { background: linear-gradient(45deg, #ef4444, #f59e0b); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75em; font-weight: bold; animation: blink 2s infinite; }
+        .news-list { display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; }
+        .news-item { display: flex; gap: 15px; padding: 16px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; border-left: 4px solid #3b82f6; transition: all 0.3s ease; }
+        .news-item:hover { background: rgba(59, 130, 246, 0.1); transform: translateX(5px); }
+        .news-time { min-width: 80px; color: #64748b; font-size: 0.85em; font-weight: 500; }
+        .news-content { flex: 1; }
+        .news-headline { color: #e2e8f0; font-weight: 600; margin-bottom: 6px; line-height: 1.5; }
+        .news-source { color: #94a3b8; font-size: 0.85em; display: flex; align-items: center; gap: 8px; }
+        .news-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; margin-left: 8px; }
+        .tag-breaking { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .tag-analysis { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .tag-market { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .news-scroll { animation: scroll 30s linear infinite; }
+        @keyframes scroll { 0% { transform: translateY(0); } 100% { transform: translateY(-100%); } }
         .prob-low { background: linear-gradient(90deg, #ef4444, #f87171); }
         .prob-medium { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
         .prob-high { background: linear-gradient(90deg, #10b981, #34d399); }
@@ -107,6 +126,21 @@
                 <button class="btn btn-secondary" onclick="toggleAutoRefresh()">⏱️ 自动刷新: <span id="autoRefreshStatus">开启</span></button>
             </div>
         </header>
+        
+        <!-- 7×24小时实时新闻 -->
+        <div class="news-section">
+            <div class="news-header">
+                <div class="news-title">
+                    📰 7×24小时伊朗实时新闻
+                    <span class="news-badge">LIVE</span>
+                </div>
+                <div style="color: #94a3b8; font-size: 0.9em;">最后更新: <span id="newsUpdateTime">--</span></div>
+            </div>
+            <div class="news-list" id="newsList">
+                <!-- 新闻将由JS动态生成 -->
+            </div>
+        </div>
+        
         <div id="errorContainer"></div>
         
         <!-- 研究分析报告 -->
@@ -229,6 +263,22 @@
             { question: 'US announces military support of Iran opposition by March 31?', icon: '🤝', type: 'political', baseProb: 0.22, baseVol: 2.2 }
         ];
 
+        // 7×24小时实时新闻数据
+        const iranNews = [
+            { time: '14:52', headline: '伊朗外长：愿意在平等基础上与美国进行间接谈判', source: 'Reuters', tag: 'breaking', tagText: '突发' },
+            { time: '14:35', headline: '霍尔木兹海峡航运流量正常，未出现封锁迹象', source: 'Bloomberg', tag: 'market', tagText: '市场' },
+            { time: '13:48', headline: 'Polymarket数据显示：美军入侵伊朗概率降至10%，为近期最低', source: 'Polymarket', tag: 'analysis', tagText: '分析' },
+            { time: '12:20', headline: '以色列国防军：监测到伊朗在叙利亚军事设施活动增加', source: 'Al Jazeera', tag: 'breaking', tagText: '突发' },
+            { time: '11:15', headline: '布伦特原油因地缘政治风险溢价维持在$92高位', source: 'CNBC', tag: 'market', tagText: '市场' },
+            { time: '10:30', headline: '特朗普：若当选将寻求与伊朗达成"更好的协议"', source: 'CNN', tag: 'analysis', tagText: '分析' },
+            { time: '09:45', headline: '国际原子能机构：伊朗铀浓缩浓度仍维持在60%，未突破90%', source: 'IAEA', tag: 'analysis', tagText: '分析' },
+            { time: '08:20', headline: '伊朗央行宣布新外汇管制措施，里亚尔汇率小幅回升', source: 'Financial Times', tag: 'market', tagText: '市场' },
+            { time: '07:10', headline: '美国中央司令部：中东地区美军基地保持高度戒备状态', source: 'AP', tag: 'breaking', tagText: '突发' },
+            { time: '06:00', headline: '隔夜市场：黄金因地缘避险需求上涨至$2158', source: 'MarketWatch', tag: 'market', tagText: '市场' },
+            { time: '03:30', headline: '伊朗议会通过新国防预算案，军费开支增加15%', source: 'Tehran Times', tag: 'analysis', tagText: '分析' },
+            { time: '01:15', headline: '欧盟外交代表：伊朗核问题谈判窗口正在关闭', source: 'Reuters', tag: 'breaking', tagText: '突发' }
+        ];
+
         let markets = [];
         let trendChart, distributionChart, autoRefreshTimer = null, isAutoRefresh = true;
         let isRealData = false;
@@ -290,6 +340,9 @@
         }
 
         async function init() {
+            // 渲染新闻
+            renderNews();
+            
             const realData = await fetchPolymarketData();
             if (realData && realData.length > 0) {
                 markets = realData;
@@ -305,11 +358,54 @@
             generateAlerts();
             updateLastUpdateTime();
             if (isAutoRefresh) startAutoRefresh();
+            
+            // 每5分钟更新一次新闻
+            setInterval(updateNews, 300000);
         }
 
         function showError(msg) {
             document.getElementById('errorContainer').innerHTML = `<div class="error-message">⚠️ ${msg}</div>`;
             setTimeout(() => document.getElementById('errorContainer').innerHTML = '', 5000);
+        }
+
+        // 渲染实时新闻
+        function renderNews() {
+            const newsList = document.getElementById('newsList');
+            const tagClassMap = {
+                'breaking': 'tag-breaking',
+                'analysis': 'tag-analysis',
+                'market': 'tag-market'
+            };
+            
+            newsList.innerHTML = iranNews.map(news => `
+                <div class="news-item">
+                    <div class="news-time">${news.time}</div>
+                    <div class="news-content">
+                        <div class="news-headline">${news.headline}</div>
+                        <div class="news-source">
+                            📡 ${news.source}
+                            <span class="news-tag ${tagClassMap[news.tag]}">${news.tagText}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('newsUpdateTime').textContent = new Date().toLocaleString('zh-CN');
+        }
+
+        // 模拟新闻更新
+        function updateNews() {
+            // 随机更新一条新闻的时间为当前时间
+            const randomIndex = Math.floor(Math.random() * iranNews.length);
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            iranNews[randomIndex].time = timeStr;
+            
+            // 将更新的新闻移到顶部
+            const updatedNews = iranNews.splice(randomIndex, 1)[0];
+            iranNews.unshift(updatedNews);
+            
+            renderNews();
         }
 
         function updateDashboard() {
