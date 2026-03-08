@@ -67,6 +67,29 @@
         .tag-market { background: rgba(16, 185, 129, 0.2); color: #10b981; }
         .news-scroll { animation: scroll 30s linear infinite; }
         @keyframes scroll { 0% { transform: translateY(0); } 100% { transform: translateY(-100%); } }
+        
+        /* 阅读原文按钮 */
+        .news-link-btn { 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 5px; 
+            padding: 6px 12px; 
+            background: linear-gradient(45deg, #3b82f6, #2563eb); 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            font-size: 0.8em; 
+            font-weight: 600; 
+            cursor: pointer; 
+            text-decoration: none; 
+            transition: all 0.3s ease; 
+            margin-left: 10px;
+        }
+        .news-link-btn:hover { 
+            background: linear-gradient(45deg, #2563eb, #1d4ed8); 
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); 
+        }
         .prob-low { background: linear-gradient(90deg, #ef4444, #f87171); }
         .prob-medium { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
         .prob-high { background: linear-gradient(90deg, #10b981, #34d399); }
@@ -265,18 +288,18 @@
 
         // 7×24小时实时新闻数据
         const iranNews = [
-            { time: '14:52', headline: '伊朗外长：愿意在平等基础上与美国进行间接谈判', source: 'Reuters', tag: 'breaking', tagText: '突发' },
-            { time: '14:35', headline: '霍尔木兹海峡航运流量正常，未出现封锁迹象', source: 'Bloomberg', tag: 'market', tagText: '市场' },
-            { time: '13:48', headline: 'Polymarket数据显示：美军入侵伊朗概率降至10%，为近期最低', source: 'Polymarket', tag: 'analysis', tagText: '分析' },
-            { time: '12:20', headline: '以色列国防军：监测到伊朗在叙利亚军事设施活动增加', source: 'Al Jazeera', tag: 'breaking', tagText: '突发' },
-            { time: '11:15', headline: '布伦特原油因地缘政治风险溢价维持在$92高位', source: 'CNBC', tag: 'market', tagText: '市场' },
-            { time: '10:30', headline: '特朗普：若当选将寻求与伊朗达成"更好的协议"', source: 'CNN', tag: 'analysis', tagText: '分析' },
-            { time: '09:45', headline: '国际原子能机构：伊朗铀浓缩浓度仍维持在60%，未突破90%', source: 'IAEA', tag: 'analysis', tagText: '分析' },
-            { time: '08:20', headline: '伊朗央行宣布新外汇管制措施，里亚尔汇率小幅回升', source: 'Financial Times', tag: 'market', tagText: '市场' },
-            { time: '07:10', headline: '美国中央司令部：中东地区美军基地保持高度戒备状态', source: 'AP', tag: 'breaking', tagText: '突发' },
-            { time: '06:00', headline: '隔夜市场：黄金因地缘避险需求上涨至$2158', source: 'MarketWatch', tag: 'market', tagText: '市场' },
-            { time: '03:30', headline: '伊朗议会通过新国防预算案，军费开支增加15%', source: 'Tehran Times', tag: 'analysis', tagText: '分析' },
-            { time: '01:15', headline: '欧盟外交代表：伊朗核问题谈判窗口正在关闭', source: 'Reuters', tag: 'breaking', tagText: '突发' }
+            { time: '14:52', headline: '伊朗外长：愿意在平等基础上与美国进行间接谈判', source: 'Reuters', tag: 'breaking', tagText: '突发', url: 'https://www.reuters.com/world/middle-east/' },
+            { time: '14:35', headline: '霍尔木兹海峡航运流量正常，未出现封锁迹象', source: 'Bloomberg', tag: 'market', tagText: '市场', url: 'https://www.bloomberg.com/middle-east' },
+            { time: '13:48', headline: 'Polymarket数据显示：美军入侵伊朗概率降至10%，为近期最低', source: 'Polymarket', tag: 'analysis', tagText: '分析', url: 'https://polymarket.com/search?q=iran' },
+            { time: '12:20', headline: '以色列国防军：监测到伊朗在叙利亚军事设施活动增加', source: 'Al Jazeera', tag: 'breaking', tagText: '突发', url: 'https://www.aljazeera.com/middle-east/' },
+            { time: '11:15', headline: '布伦特原油因地缘政治风险溢价维持在$92高位', source: 'CNBC', tag: 'market', tagText: '市场', url: 'https://www.cnbc.com/oil/' },
+            { time: '10:30', headline: '特朗普：若当选将寻求与伊朗达成"更好的协议"', source: 'CNN', tag: 'analysis', tagText: '分析', url: 'https://edition.cnn.com/middleeast' },
+            { time: '09:45', headline: '国际原子能机构：伊朗铀浓缩浓度仍维持在60%，未突破90%', source: 'IAEA', tag: 'analysis', tagText: '分析', url: 'https://www.iaea.org/newscenter/focus/iran' },
+            { time: '08:20', headline: '伊朗央行宣布新外汇管制措施，里亚尔汇率小幅回升', source: 'Financial Times', tag: 'market', tagText: '市场', url: 'https://www.ft.com/world/middle-east' },
+            { time: '07:10', headline: '美国中央司令部：中东地区美军基地保持高度戒备状态', source: 'AP', tag: 'breaking', tagText: '突发', url: 'https://apnews.com/hub/middle-east' },
+            { time: '06:00', headline: '隔夜市场：黄金因地缘避险需求上涨至$2158', source: 'MarketWatch', tag: 'market', tagText: '市场', url: 'https://www.marketwatch.com/investing/gold' },
+            { time: '03:30', headline: '伊朗议会通过新国防预算案，军费开支增加15%', source: 'Tehran Times', tag: 'analysis', tagText: '分析', url: 'https://www.tehrantimes.com/' },
+            { time: '01:15', headline: '欧盟外交代表：伊朗核问题谈判窗口正在关闭', source: 'Reuters', tag: 'breaking', tagText: '突发', url: 'https://www.reuters.com/world/middle-east/' }
         ];
 
         let markets = [];
@@ -385,6 +408,7 @@
                         <div class="news-source">
                             📡 ${news.source}
                             <span class="news-tag ${tagClassMap[news.tag]}">${news.tagText}</span>
+                            <a href="${news.url}" target="_blank" class="news-link-btn">📰 阅读原文</a>
                         </div>
                     </div>
                 </div>
