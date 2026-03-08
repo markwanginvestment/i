@@ -41,9 +41,15 @@
         .chart-wrapper { position: relative; height: 350px; }
         .market-table-container { background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; padding: 24px; border: 1px solid #334155; overflow-x: auto; }
         .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.95em; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.95em; table-layout: fixed; }
         th { background: #0f172a; padding: 16px; text-align: left; font-weight: 600; color: #94a3b8; border-bottom: 2px solid #334155; white-space: nowrap; }
-        td { padding: 16px; border-bottom: 1px solid #334155; }
+        th:first-child { width: 40%; }
+        th:nth-child(2) { width: 25%; }
+        th:nth-child(3) { width: 15%; }
+        th:nth-child(4) { width: 12%; }
+        th:nth-child(5) { width: 8%; }
+        td { padding: 16px; border-bottom: 1px solid #334155; vertical-align: middle; }
+        td:first-child { max-width: 300px; }
         tr:hover { background: rgba(59, 130, 246, 0.05); }
         .prob-bar-container { width: 120px; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 10px; }
         .prob-bar { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
@@ -324,7 +330,9 @@
                 const odds = m.yes >= 0.5 ? Math.round(-100 * m.yes / (1 - m.yes)) : '+' + Math.round(100 * (1 - m.yes) / m.yes);
                 const oddsClass = odds > 0 ? 'odds-positive' : 'odds-negative';
                 const statusBadge = m.isSimulated ? '<span class="badge status-simulated">● 模拟</span>' : '<span class="badge status-live">● 实时</span>';
-                return `<tr><td><strong>${m.question}</strong></td><td><div class="prob-bar-container"><div class="prob-bar ${probClass}" style="width: ${m.yes * 100}%"></div></div><span style="font-weight: 600;">${(m.yes * 100).toFixed(1)}%</span></td><td><span class="odds ${oddsClass}">${odds}</span></td><td>$${m.volume.toFixed(1)}M</td><td>${statusBadge}</td></tr>`;
+                // 优化标题显示，添加换行和最大宽度
+                const displayQuestion = m.question.length > 50 ? m.question.substring(0, 50) + '...' : m.question;
+                return `<tr><td style="max-width: 300px; word-wrap: break-word; white-space: normal;"><strong style="line-height: 1.4;">${displayQuestion}</strong></td><td><div class="prob-bar-container"><div class="prob-bar ${probClass}" style="width: ${m.yes * 100}%"></div></div><span style="font-weight: 600;">${(m.yes * 100).toFixed(1)}%</span></td><td><span class="odds ${oddsClass}">${odds}</span></td><td>$${m.volume.toFixed(1)}M</td><td>${statusBadge}</td></tr>`;
             }).join('');
         }
 
